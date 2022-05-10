@@ -1,12 +1,12 @@
 import React from "react";
-import FormInput from "./components/FormInput";
-import TodoItem from "./components/TodoItem";
-import EditModal from "./components/EditModal";
-import DeleteModal from "./components/DeleteModal";
-import logo from "./logo.svg";
-import "./App.css";
+import FormInput from "../components/FormInput";
+import TodoItem from "../components/TodoItem";
+import EditModal from "../components/EditModal";
+import DeleteModal from "../components/DeleteModal";
+import logo from "../logo.svg";
+import "../App.css";
 
-class App extends React.Component {
+class Home extends React.Component {
   state = {
     todos: [
       {
@@ -156,4 +156,4 @@ class App extends React.Component {
   }
 }
 
-export default App;
+export default Home;
