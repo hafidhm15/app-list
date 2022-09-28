@@ -1,99 +1,67 @@
-import React from "react";
-import FormInput from "../components/FormInput";
-import TodoItem from "../components/TodoItem";
-import EditModal from "../components/EditModal";
-import DeleteModal from "../components/DeleteModal";
-import logo from "../logo.svg";
-import "../App.css";
+import React, { useState, useEffect, useContext } from 'react';
+import { AuthContext } from '../context/auth';
+import axios from 'axios';
+import FormInput from '../components/FormInput';
+import TodoItem from '../components/TodoItem';
+import EditModal from '../components/EditModal';
+import Button from '../components/Button';
+import logo from '../logo.svg';
+import '../App.css';
+import SkeletonLoading from '../components/SkeletonLoading';
+const baseUrl = 'https://my-udemy-api.herokuapp.com/api/v1';
 
-class Home extends React.Component {
-  state = {
-    todos: [
-      {
-        id: 1,
-        title: "reading a book",
-      },
-      {
-        id: 2,
-        title: "work",
-      },
-    ],
-    isEdit: false,
-    editData: {
-      id: "",
-      title: "",
-    },
-    isDelete: false,
-    deleteData: {
-      id: "",
-      title: "",
-    },
-  };
+const Task = () => {
+  const { logout } = useContext(AuthContext);
+  const [loading, setLoading] = useState(false);
+  const [todos, setTodos] = useState([]);
+  const [isEdit, setIsedit] = useState(false);
+  const [isDelete, setIsDelete] = useState(false);
+  const [deleteData, setDeleteData] = useState({});
+  const [editdata, setEditdata] = useState({
+    id: '',
+    title: '',
+  });
 
-  update = () => {
+  const update = () => {
     const { id, title } = this.state.editData;
     const newData = { id, title };
     const newTodos = this.state.todos;
     newTodos.splice(id - 1, 1, newData);
-    this.setState({
-      todos: newTodos,
-      isEdit: false,
-      editData: {
-        id: "",
-        title: "",
-      },
+    setTodos(newTodos);
+    setIsedit(false);
+    setEditdata({ id: '', title: '' });
+  };
+
+  const setTitle = (e) => {
+    setEditdata({
+      ...editdata,
+      title: e.target.value,
     });
   };
 
-  setTitle = (e) => {
-    this.setState({
-      editData: {
-        ...this.state.editData,
-        title: e.target.value,
-      },
-    });
+  const openModal = (id, data) => {
+    setIsedit(true);
+    setEditdata({ id, title: data.title });
   };
 
-  openModal = (id, data) => {
-    this.setState({
-      isEdit: true,
-      editData: {
-        id,
-        title: data,
-      },
-    });
+  const deleteModal = (id, data) => {
+    setIsDelete(true);
+    setEditdata({ id, title: data.title });
   };
 
-  deleteModal = (id, data) => {
-    this.setState({
-      isDelete: true,
-      deleteData: {
-        id,
-        title: data,
-      },
-    });
-  };
-
-  closeModal = () => {
-    this.setState({
-      isEdit: false,
-      isDelete: false,
-    });
+  const closeModal = () => {
+    setIsedit(false);
   };
 
   //delete task
-  deleteTask = () => {
-    const { id } = this.state.deleteData;
-    const newTodos = this.state.todos;
-    newTodos.splice(id - 1, 1);
-    this.setState({
-      todos: this.state.todos.filter((item) => item.id !== id),
-      isDelete: false,
-      deleteData: {
-        id: "",
-        title: "",
+  const deleteTask = async (id) => {
+    const token = localStorage.getItem('token');
+    await axios.get(`${baseUrl}/todo/${id}`, {
+      headers: {
+        Authorization: token,
       },
     });
+    setTodos(todos.filter((item) => item._id !== id));
   };
   // deleteTask = (id, data) => {
   //   this.setState({
@@ -106,54 +74,65 @@ class Home extends React.Component {
   //   });
   // };
 
-  addTask = (data) => {
-    const id = this.state.todos.length;
-    const newData = {
-      id: id + 1,
-      title: data,
-    };
-    this.setState({
-      todos: [...this.state.todos, newData],
-    });
+  const addTask = (data) => {
+    setTodos([...todos, data]);
   };
 
-  render() {
-    const { todos } = this.state;
-    return (
-      <div className="app">
-        <div className="logo">
-          <img src={logo} alt="" />
-          <h3>Task List</h3>
-        </div>
-        <div className="list">
-          {todos.map((item) => (
-            <TodoItem
-              key={item.id}
-              todo={item}
-              del={this.deleteModal}
-              open={this.openModal}
-            />
-          ))}
-        </div>
-        <div className="input-form">
-          <FormInput add={this.addTask} />
-        </div>
-        <EditModal
-          edit={this.state.isEdit}
-          close={this.closeModal}
-          change={this.setTitle}
-          data={this.state.editData}
-          update={this.update}
-        />
-        <DeleteModal
-          delet={this.state.isDelete}
-          dlt={this.deleteTask}
-          close={this.closeModal}
-          data={this.state.deleteData}
-        />
-      </div>
-    );
-  }
-}
+  const getData = async () => {
+    setLoading(true);
+    const token = localStorage.getItem('token');
+    const res = await axios.get(`${baseUrl}/todo`, {
+      headers: {
+        Authorization: token,
+      },
+    });
+    setTodos(res.data.todos);
+    setTimeout(() => {
+      setLoading(false);
+    }, 2000);
+    // console.log(res);
+  };
 
-export default Home;
+  useEffect(() => {
+    getData();
+  }, []);
+
+  return (
+    <div className="app">
+      <div className="logo">
+        <img src={logo} alt="" />
+        <h3>Task List</h3>
+        <Button text="logout" variant="primary" action={logout} />
+      </div>
+      <div className="list">
+        {todos.map((item) => (
+          <TodoItem
+            key={item.id}
+            todo={item}
+            del={deleteTask}
+            open={openModal}
+            loading={loading}
+          />
+        ))}
+      </div>
+      <div className="input-form">
+        <FormInput add={addTask} />
+      </div>
+      <EditModal
+        edit={isEdit}
+        close={closeModal}
+        change={setTitle}
+        data={editdata}
+        update={update}
+      />
+      <deleteModal
+        delet={isDelete}
+        dlt={deleteTask}
+        close={closeModal}
+        data={deleteData}
+      />
+    </div>
+  );
+};
+
+export default Task;
